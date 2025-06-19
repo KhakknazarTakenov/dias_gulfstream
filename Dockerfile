@@ -14,13 +14,13 @@ RUN apk add --no-cache tzdata \
 WORKDIR /app
 
 # Copy only package files first to leverage Docker cache
-COPY backend/package*.json ./
+COPY package*.json ./
 
 # Install production dependencies
 RUN npm ci --omit=dev
 
 # Copy application source
-COPY backend/ .
+COPY . .
 
 # Expose application port
 EXPOSE 4671

@@ -32,7 +32,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(BASE_URL + 'static', express.static(path.join(process.cwd(), 'static')));
 
 // Получить список изображений категории
-app.get(BASE_URL + 'images', async (req, res) => {
+app.get(BASE_URL + 'images/', async (req, res) => {
     try {
         const { folder } = req.query;
         if (!folder) {
@@ -43,7 +43,8 @@ app.get(BASE_URL + 'images', async (req, res) => {
             return res.status(404).json({ status: false, message: 'Folder not found' });
         }
         const files = fs.readdirSync(dirPath).filter(f => /\.(jpg|jpeg|png|gif|webp|dng)$/i.test(f));
-        const hostPrefix = req.protocol + '://' + req.get('host');
+        const hostPrefix = 'https://storerobots.gamechanger.kz';
+        // const hostPrefix = 'http://localhost:4671';
         const urls = files.map(f => `${hostPrefix}${BASE_URL}static/images/${folder}/${f}`);
         res.json({ status: true, images: urls });
     } catch (err) {
@@ -128,7 +129,6 @@ app.get(BASE_URL + "rooms/", async (req, res) => {
         });
     }
 });
-
 
 // Проверка доступности номера
 app.post(BASE_URL + "rooms/check-availability", async (req, res) => {
