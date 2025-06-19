@@ -43,8 +43,8 @@ app.get(BASE_URL + 'images/', async (req, res) => {
             return res.status(404).json({ status: false, message: 'Folder not found' });
         }
         const files = fs.readdirSync(dirPath).filter(f => /\.(jpg|jpeg|png|gif|webp|dng)$/i.test(f));
-        const hostPrefix = 'https://storerobots.gamechanger.kz';
-        // const hostPrefix = 'http://localhost:4671';
+        // const hostPrefix = 'https://storerobots.gamechanger.kz';
+        const hostPrefix = 'http://localhost:4671';
         const urls = files.map(f => `${hostPrefix}${BASE_URL}static/images/${folder}/${f}`);
         res.json({ status: true, images: urls });
     } catch (err) {
@@ -144,10 +144,20 @@ app.post(BASE_URL + "rooms/check-availability", async (req, res) => {
 
         const availability = await roomService.checkAvailability(roomId, roomType, checkIn, checkOut);
 
+        // Получаем занятость для дат
+        const checkInDate = new Date(checkIn);
+        const year = checkInDate.getFullYear();
+        const month = checkInDate.getMonth() + 1;
+        const occupancy = await roomService.calculateOccupancy(roomType, checkIn, checkOut);
+
         res.status(200).json({
             status: true,
             status_msg: "success",
-            data: availability
+            data: {
+                available: availability.available,
+                roomId: availability.roomId || null,
+                occupancy // { "YYYY-MM-DD": <percent> }
+            }
         });
     } catch (error) {
         logMessage(LOG_TYPES.E, BASE_URL + "rooms/check-availability", error);

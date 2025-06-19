@@ -6,12 +6,10 @@ class RoomService {
     constructor() {
         this.roomTypes = {
             UF_CRM_DEAL_1750132990506: {
-                basePrice: 5000, // Базовая цена за стандартный номер
-                occupancyMultiplier: 1.2 // Множитель при занятости
+                basePrice: 30000, // Базовая цена за стандартный номер
             },
             UF_CRM_DEAL_1750133047593: {
-                basePrice: 10000, // Базовая цена за люкс
-                occupancyMultiplier: 1.3 // Множитель при занятости
+                basePrice: 70000, // Базовая цена за люкс
             }
         };
     }
@@ -252,6 +250,50 @@ class RoomService {
             };
         } catch (error) {
             logMessage('ERROR', 'RoomService.getRoomsInfo', error);
+            throw error;
+        }
+    }
+
+    // Новый метод для расчета занятости
+    async calculateOccupancy(roomType, checkIn, checkOut) {
+        try {
+            const checkInDate = new Date(checkIn);
+            const checkOutDate = new Date(checkOut);
+            const year = checkInDate.getFullYear();
+            const month = checkInDate.getMonth() + 1;
+            const occupancy = {};
+
+            // Получаем информацию о номерах и бронированиях
+            const roomsInfo = await this.getRoomsInfo(year, month, roomType);
+            const rooms = roomsInfo.rooms || [];
+            const totalRooms = rooms.length;
+
+            // Перебираем даты от checkIn до checkOut
+            let currentDate = new Date(checkInDate);
+            while (currentDate < checkOutDate) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                let bookedRooms = 0;
+
+                // Подсчитываем забронированные номера
+                rooms.forEach(room => {
+                    const isBooked = room.occupiedDates.some(booking => {
+                        const bookingCheckIn = new Date(booking.checkIn);
+                        const bookingCheckOut = new Date(booking.checkOut);
+                        return currentDate >= bookingCheckIn && currentDate < bookingCheckOut;
+                    });
+                    if (isBooked) bookedRooms++;
+                });
+
+                // Рассчитываем процент занятости
+                const occupancyRate = totalRooms > 0 ? bookedRooms / totalRooms : 0;
+                occupancy[dateStr] = Number(occupancyRate.toFixed(2));
+
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            return occupancy;
+        } catch (error) {
+            logMessage('ERROR', 'RoomService.calculateOccupancy', error);
             throw error;
         }
     }
