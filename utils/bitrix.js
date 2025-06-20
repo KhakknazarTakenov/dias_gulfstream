@@ -278,7 +278,7 @@ class BitrixClient {
                 [roomType]: roomId, // ID номера
                 COMMENTS: comments || '',
                 CONTACT_ID: contactId,
-                PRICE: totalCost || 0 // Стоимость бронирования
+                OPPORTUNITY: totalCost || 0 // Стоимость бронирования
             }
         };
 
