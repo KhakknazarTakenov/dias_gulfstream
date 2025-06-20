@@ -172,7 +172,7 @@ app.post(BASE_URL + "rooms/check-availability", async (req, res) => {
 // Создание бронирования
 app.post(BASE_URL + 'booking/create', async (req, res) => {
     try {
-        const { roomId, roomType, checkIn, checkOut, contactName, contactPhone, comments } = req.body;
+        const { roomId, roomType, checkIn, checkOut, contactName, contactPhone, comments, totalCost } = req.body;
 
         // Валидация обязательных полей
         if (!roomId || !roomType || !checkIn || !checkOut || !contactName || !contactPhone) {
@@ -224,7 +224,8 @@ app.post(BASE_URL + 'booking/create', async (req, res) => {
             checkIn,
             checkOut,
             contactId,
-            comments
+            comments,
+            totalCost: totalCost || null
         });
 
         if (!bookingResult.result) {

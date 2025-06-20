@@ -259,7 +259,7 @@ class BitrixClient {
             throw new Error('Booking data is required');
         }
 
-        const { checkIn, checkOut, roomId, roomType, comments, contactId } = bookingData;
+        const { checkIn, checkOut, roomId, roomType, comments, contactId, totalCost } = bookingData;
 
         if (!checkIn || !checkOut || !roomId || !contactId || !roomType) {
             throw new Error('Missing required booking data: checkIn, checkOut, roomId, roomType, or contactId');
@@ -277,7 +277,8 @@ class BitrixClient {
                 UF_CRM_1749787453685: checkOut, // Дата выезда
                 [roomType]: roomId, // ID номера
                 COMMENTS: comments || '',
-                CONTACT_ID: contactId
+                CONTACT_ID: contactId,
+                PRICE: totalCost || 0 // Стоимость бронирования
             }
         };
 
