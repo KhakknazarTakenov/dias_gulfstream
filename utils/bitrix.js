@@ -74,12 +74,15 @@ class BitrixClient {
     async getRoomCategories() {
         return {
             result: [
-                {
-                    NAME: 'Стандарт'
-                },
-                {
-                    NAME: 'Люкс'
-                }
+                { NAME: 'Стандарт' },
+                { NAME: 'Люкс' },
+                { NAME: 'Комфорт' },
+                { NAME: 'Стандарт Plus' },
+                { NAME: 'Таунхаус' },
+                { NAME: 'Таунхаус Big' },
+                { NAME: 'Домик 1' },
+                { NAME: 'Домик 2' },
+                { NAME: 'Домик 3' }
             ]
         };
     }
@@ -114,34 +117,38 @@ class BitrixClient {
                 throw new Error(`Field ${categoryField} not found in deal fields`);
             }
 
-            // Проверяем, что это поле типа list (список)
-            if (categoryFieldData.type !== 'enumeration') {
-                throw new Error(`Field ${categoryField} is not a list type`);
-            }
+            // Если это список – возвращаем все элементы списка
+            if (categoryFieldData.type === 'enumeration') {
+                const listResponse = await this.makeRequest('crm.deal.userfield.list', {
+                    filter: {
+                        FIELD_NAME: categoryField
+                    }
+                });
 
-            // Получаем список значений для этого поля
-            const listResponse = await this.makeRequest('crm.deal.userfield.list', {
-                filter: {
-                    FIELD_NAME: categoryField
+                if (!listResponse.result || !listResponse.result.length) {
+                    throw new Error(`No list values found for field ${categoryField}`);
                 }
-            });
 
-            if (!listResponse.result || !listResponse.result.length) {
-                throw new Error(`No list values found for field ${categoryField}`);
+                const fieldData = listResponse.result[0];
+                if (!fieldData.LIST || !fieldData.LIST.length) {
+                    throw new Error(`No list items found for field ${categoryField}`);
+                }
+
+                const rooms = {};
+                fieldData.LIST.forEach(item => {
+                    rooms[item.ID] = item.VALUE;
+                });
+
+                return rooms;
             }
 
-            const fieldData = listResponse.result[0];
-            if (!fieldData.LIST || !fieldData.LIST.length) {
-                throw new Error(`No list items found for field ${categoryField}`);
+            // Если это булево поле – возвращаем единственную комнату
+            if (categoryFieldData.type === 'boolean') {
+                const roomName = categoryFieldData.listLabel || categoryFieldData.formLabel || categoryFieldData.filterLabel || categoryFieldData.title || categoryField;
+                return { '1': roomName };
             }
 
-            // Формируем список комнат
-            const rooms = {};
-            fieldData.LIST.forEach(item => {
-                rooms[item.ID] = item.VALUE;
-            });
-
-            return rooms;
+            throw new Error(`Unsupported field type ${categoryFieldData.type} for field ${categoryField}`);
         } catch (error) {
             logMessage('ERROR', 'BitrixClient.getRoomsFromFields', error);
             throw error;
@@ -163,19 +170,30 @@ class BitrixClient {
                 this.cryptoIV
             );
 
+            const roomCategoryFields = {
+                standard: 'UF_CRM_DEAL_1750132990506',
+                lux: 'UF_CRM_DEAL_1750133047593',
+                comfort: 'UF_CRM_1750505541730',
+                standard_plus: 'UF_CRM_1750505607',
+                townhouse: 'UF_CRM_1750505755286',
+                townhouse_big: 'UF_CRM_1750505983944',
+                house_1: 'UF_CRM_1750506555',
+                house_2: 'UF_CRM_1750506568',
+                house_3: 'UF_CRM_1750506579'
+            };
+
             let commands = {};
-            
+
             if (categoryField) {
                 // Если передана конкретная категория, делаем запрос только для неё
                 commands = {
                     category: `crm.deal.list?filter[>=UF_CRM_1749509439624]=${startDateStr}&filter[<=UF_CRM_1749787453685]=${endDateStr}&select[]=ID&select[]=UF_CRM_1749509439624&select[]=UF_CRM_1749787453685&select[]=${categoryField}&select[]=COMMENTS`
                 };
             } else {
-                // Если категория не передана, делаем запрос для всех категорий
-                commands = {
-                    standard: `crm.deal.list?filter[>=UF_CRM_1749509439624]=${startDateStr}&filter[<=UF_CRM_1749787453685]=${endDateStr}&select[]=ID&select[]=UF_CRM_1749509439624&select[]=UF_CRM_1749787453685&select[]=UF_CRM_DEAL_1750132990506&select[]=COMMENTS`,
-                    lux: `crm.deal.list?filter[>=UF_CRM_1749509439624]=${startDateStr}&filter[<=UF_CRM_1749787453685]=${endDateStr}&select[]=ID&select[]=UF_CRM_1749509439624&select[]=UF_CRM_1749787453685&select[]=UF_CRM_DEAL_1750133047593&select[]=COMMENTS`
-                };
+                // Формируем команды для всех категорий
+                for (const [alias, fieldCode] of Object.entries(roomCategoryFields)) {
+                    commands[alias] = `crm.deal.list?filter[>=UF_CRM_1749509439624]=${startDateStr}&filter[<=UF_CRM_1749787453685]=${endDateStr}&select[]=ID&select[]=UF_CRM_1749509439624&select[]=UF_CRM_1749787453685&select[]=${fieldCode}&select[]=COMMENTS`;
+                }
             }
 
             // Формируем URL с параметрами
@@ -227,12 +245,14 @@ class BitrixClient {
             } else {
                 // Если запрашивались все категории, возвращаем для всех
                 const categoryResults = {};
-                for (const [category, deals] of Object.entries(result)) {
-                    categoryResults[category === 'standard' ? 'UF_CRM_DEAL_1750132990506' : 'UF_CRM_DEAL_1750133047593'] = {
+                for (const [alias, deals] of Object.entries(result)) {
+                    const fieldCode = roomCategoryFields[alias];
+                    if (!fieldCode) continue;
+                    categoryResults[fieldCode] = {
                         rooms: {},
                         deals: deals
                     };
-                } 
+                }
                 return categoryResults;
             }
         } catch (error) {

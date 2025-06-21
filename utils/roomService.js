@@ -5,11 +5,41 @@ import { log } from 'console';
 class RoomService {
     constructor() {
         this.roomTypes = {
+            // Стандарт
             UF_CRM_DEAL_1750132990506: {
-                basePrice: 30000, // Базовая цена за стандартный номер
+                basePrice: 30000,
             },
+            // Люкс
             UF_CRM_DEAL_1750133047593: {
-                basePrice: 70000, // Базовая цена за люкс
+                basePrice: 70000,
+            },
+            // Комфорт
+            UF_CRM_1750505541730: {
+                basePrice: 40000,
+            },
+            // Стандарт Plus
+            UF_CRM_1750505607: {
+                basePrice: 40000,
+            },
+            // Таунхаус
+            UF_CRM_1750505755286: {
+                basePrice: 50000,
+            },
+            // Таунхаус Big
+            UF_CRM_1750505983944: {
+                basePrice: 70000,
+            },
+            // Домик 1
+            UF_CRM_1750506555: {
+                basePrice: 80000,
+            },
+            // Домик 2
+            UF_CRM_1750506568: {
+                basePrice: 80000,
+            },
+            // Домик 3
+            UF_CRM_1750506579: {
+                basePrice: 100000,
             }
         };
     }
@@ -187,8 +217,9 @@ class RoomService {
                     return currentDate >= bookingCheckIn && currentDate < bookingCheckOut;
                 });
                 
+                const occupancyMultiplier = roomConfig.occupancyMultiplier || 1;
                 const dailyPrice = isOccupied 
-                    ? roomConfig.basePrice * roomConfig.occupancyMultiplier 
+                    ? roomConfig.basePrice * occupancyMultiplier 
                     : roomConfig.basePrice;
                     
                 totalPrice += dailyPrice;
